@@ -1,21 +1,26 @@
-
 import telebot
+import os
 
-# التوكن الخاص بالبوت
-TOKEN = '7782723958:AAGYgjNcxv8tokZzAFPv-qO3yKOIpwMvd10'
+TOKEN = os.getenv("BOT_TOKEN")
 bot = telebot.TeleBot(TOKEN)
 
-# رسالة البداية
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.reply_to(message, "أهلًا وسهلًا بك في البوت! 🌟\nأرسل لي أي رسالة وسأعيدها مع تعديل بسيط.")
+WEBHOOK_URL = "https://<your-app-name>.herokuapp.com/"  # رابط Webhook الخاص بك
 
-# معالجة الرسائل النصية
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
-    modified_text = f"📝 رسالتك بعد التعديل: {message.text.upper()} 📝"
-    bot.reply_to(message, modified_text)
+# إعداد Webhook
+bot.remove_webhook()
+bot.set_webhook(url=WEBHOOK_URL)
 
-# تشغيل البوت
-print("🚀 البوت يعمل الآن...")
-bot.polling()
+# نقطة النهاية الرئيسية
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route("/", methods=["POST"])
+def webhook():
+    json_string = request.get_data().decode("utf-8")
+    update = telebot.types.Update.de_json(json_string)
+    bot.process_new_updates([update])
+    return "!", 200
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
